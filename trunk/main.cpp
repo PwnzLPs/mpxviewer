@@ -1,5 +1,6 @@
 //#include <vld.h>
 #include "main.h"
+ 	
 BOOL CALLBACK   DialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HANDLE hFind;
@@ -35,7 +36,8 @@ BOOL CALLBACK   DialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
 		lstFiles.Init(GetDlgItem(hwndMain,ID_lstFiles2));
 		lstTextures.Init(GetDlgItem(hwndMain,ID_lstTextures));
 		lstMaterials.Init(GetDlgItem(hwndMain,ID_LIST_MATERIALSET));
-		SetWindowText(GetDlgItem(hwnd,ID_txtFolders),"F:\\Users\\matt\\Desktop\\MetroidPrime3Dir\\Metroid8.pak_dir");
+		//SetWindowText(GetDlgItem(hwnd,ID_txtFolders),"F:\\Users\\matt\\Desktop\\MetroidPrime3Dir\\Metroid8.pak_dir");
+		SetWindowText(GetDlgItem(hwnd,ID_txtFolders),"C:\\Users\\Matt\\Desktop\\Desktop\\Desktop\\MetroidPrime1Dir\\Metroid1.pak_dir");
 		//SetWindowText(GetDlgItem(hwnd,ID_txtFolders),"C:\\Documents and Settings\\Administrator\\Desktop\\MetroidPrime2Dir\\Metroid1.pak_dir");
 		//SetWindowText(GetDlgItem(hwnd,ID_txtFolders),"F:\\Users\\matt\\Desktop\\MetroidPrime1Dir\\Metroid1.pak_dir");// for inter
 		//SetWindowText(GetDlgItem(hwnd,ID_txtFolders),"C:\\Projects\\emulation\\mp\\extract");
