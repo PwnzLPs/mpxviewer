@@ -132,6 +132,7 @@ int LoadCMDL()
 		u32 materialStart = 0;
 		u32 materialEnd = MaterialHeader->MaterialCount;
 		u32 Materials = 0;
+		
 		for (Materials = materialStart; (Materials < materialEnd) && (Materials < MaterialHeader->MaterialCount); ++Materials)
 		{
 			u32 uMesh = 0, uSubMesh = 0;
@@ -165,10 +166,10 @@ int LoadCMDL()
 					u32 k=0;
 					u32 l = 0;
 					// NOTE: use this to control which texture images to use, currently only allows a range
-					u32 kStart = 0, kEnd = kStart + 1; //info->count;// Anymore than start + 1 fucks the image up because we don't understand what else happens.
+					u32 kStart = 0, kEnd = kStart + 2; // Anymore than start + 1 fucks the image up because we don't understand what else happens.
 					if (CMDL.uvcount != 0)
 					{
-						for (k = kStart; k < kEnd && k < info->count; ++k)
+						for (k = kStart; k < kEnd && k < info->count; k++)//++k)
 						{
 							if (k > 0 && (info->ids[k] == info->ids[k-1])) 
 							{
@@ -345,13 +346,20 @@ int LoadCMDL()
 									1.0f);
 							 //glColor4f(1.0f, 1.0f, 1.0f, 1.0f);	
 							}
+						
 							glLightfv(GL_LIGHT0, GL_AMBIENT,&MaterialHeader->MaterialSegment[Materials].LayerData[l]);//LightAmbient);	
 							glMateriali(GL_FRONT_AND_BACK,GL_SHININESS,0x7f);//(float)(MaterialHeader->MaterialSegment[Materials].Attributes[l].unknown0x00&0x7F));
+								if(k==kEnd-1){
+								glEnable (GL_BLEND); 
+								glBlendFunc (GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+								
+								}
 								glMultiTexCoord2fARB(
-									GL_TEXTURE0_ARB + l,
-									a,
-									b
-									);
+										GL_TEXTURE0_ARB + l,
+										a,
+										b
+										);
+								
 							}
 
 							++l;
@@ -366,7 +374,7 @@ int LoadCMDL()
 								(CMDL.mNormals[normalIndex].Z)
 								);
 						}
-						glVertex3f(
+							glVertex3f(
 							(CMDL.vertexes[vertexIndex].X),
 							(CMDL.vertexes[vertexIndex].Y),
 							(CMDL.vertexes[vertexIndex].Z)
@@ -375,6 +383,8 @@ int LoadCMDL()
 
 					glEnd();
 					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL );
+
+
 				}
 			}
 		}
