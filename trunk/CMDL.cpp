@@ -166,7 +166,7 @@ int LoadCMDL()
 					u32 k=0;
 					u32 l = 0;
 					// NOTE: use this to control which texture images to use, currently only allows a range
-					u32 kStart = 0, kEnd = kStart + 2; // Anymore than start + 1 fucks the image up because we don't understand what else happens.
+					u32 kStart = 0, kEnd = kStart + 1; // Anymore than start + 1 fucks the image up because we don't understand what else happens.
 					if (CMDL.uvcount != 0)
 					{
 						for (k = kStart; k < kEnd && k < info->count; k++)//++k)
