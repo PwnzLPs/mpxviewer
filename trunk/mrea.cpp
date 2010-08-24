@@ -61,22 +61,22 @@ int MREAData::Read(char* fstr)
 
 		ReadTextures();
 
-		center.X = (maxBounds.X + minBounds.X) * 0.5f;
-		center.Y = (maxBounds.Y + minBounds.Y) * 0.5f;
-		center.Z = (maxBounds.Z + minBounds.Z) * 0.5f;
+		center.X = 0;//(maxBounds.X + minBounds.X) * 0.5f;
+		center.Y = 0;//(maxBounds.Y + minBounds.Y) * 0.5f;
+		center.Z = 0;//(maxBounds.Z + minBounds.Z) * 0.5f;
 
 		tex dir;
-		dir.X = (maxBounds.X - center.X);
-		dir.Y = (maxBounds.Y - center.Y);
-		dir.Z = (maxBounds.Z - center.Z);
+		dir.X = 0;(maxBounds.X - center.X);
+		dir.Y = 0;(maxBounds.Y - center.Y);
+		dir.Z = 0;(maxBounds.Z - center.Z);
 
 		float distSq = ((dir.X * dir.X) + (dir.Y * dir.Y) + (dir.Z * dir.Z));
 		float dist = sqrtf(distSq);
 		float distCu = distSq * dist;
 
-		xCamera = center.X;
-		yCamera = center.Y;
-		zCamera = center.Z - (dist * 2.0f);
+		xCamera = 0;center.X;
+		yCamera = 0;center.Y;
+		zCamera = 0;center.Z - (dist * 2.0f);
 	}
 
 	return m_sectionIndex;

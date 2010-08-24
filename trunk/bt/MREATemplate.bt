@@ -293,7 +293,7 @@ local int64  nData;
 local int64  scriptnum=0;
 secSize=16+((dataID+1)*4);
 Printf("Section Size: %x\n",fileHeader.sectionSizes[fileSection]);
-		while( secSize<= fileHeader.sectionSizes[fileSection]){//while(FTell() < fileOffset2){
+while( secSize<= fileHeader.sectionSizes[fileSection]){//while(FTell() < fileOffset2){
 //if(scriptnum==115) FSeek(	0x2D2c0);		/// 
 //(scriptnum==118) FSeek(	0x2D440);		///	 
 //if(scriptnum==489)FSeek(	0x204948);
@@ -341,6 +341,44 @@ FSeek(base);
 									    string Name;
 										switch(scriptType){
 										
+                                        case 0xD:
+                                        float3 translateValue;
+                                        float3 orientation;
+                                        float3 scale;
+                                        float unk;
+                                        float mass;
+                                        float speed;
+                                        float turnSpeed;
+                                        float detectionRange;
+                                        float detectionHeightRange;
+                                        float detectionAngle;
+                                        float minAttackRange;
+                                        float maxAttackRange;
+                                        float averageAttackTime;
+                                        float attacktTimeVariation;
+                                        float leashRadius;
+                                        float playerLeashRadius;
+                                        float playerLeashTime;
+
+                                        struct
+                                        {
+                                            uint32 weaponType;
+                                            float damage;
+                                            float radius;
+                                            float knockBackPower;
+                                            int32 unk;
+                                        }contactDamage;
+                                        float damageWaitTime;
+                                        struct
+                                        {
+                                            float health1;
+                                            float health2;
+                                            float knockBackPower;
+                                        }healthData;
+                                        uint32 vulCount;
+                                        //if(nsize>0)uint8 data[nsize-Strlen(Name)-8-2-(sizeof(float)*19)];
+                                        float vulnerabilities[vulCount];
+                                        break;
 										case 0x02:
 										uint16 u1;
 										uint16 u2;
@@ -357,7 +395,8 @@ FSeek(base);
 										 case 0x07:
 										 uint16     unknownValue;
 										 float3     TranslateValue;
-										 if(nsize>0)uint8 data[nsize-Strlen(Name)-8-2-14];
+                                         float3     scale;
+                                         float3     rotation;
 										break;
 										//case 0x08:
 										 
