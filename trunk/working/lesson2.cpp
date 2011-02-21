@@ -484,9 +484,10 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			return 0;								// Return To The Message Loop
 		}
 	case WM_PAINT:
+		//BeginPaint(hWnd, &ps);
 		DrawGLScene();
-		BeginPaint(hWnd, &ps);
-		EndPaint(hWnd, &ps);
+
+		//EndPaint(hWnd, &ps);
 		break;
 
 	case WM_CLOSE:								// Did We Receive A Close Message?

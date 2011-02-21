@@ -17,8 +17,9 @@ cmdlContainment::cmdlContainment(){
 	vertexcount = 0;
 	uvcount = 0;
 	normalcount = 0;
+
 }
-cmdlContainment::~cmdlContainment(){
+void cmdlContainment::DeleteMe(){
 	candraw=0;
 	TextNo = 0;
 	vertexcount = 0;
@@ -36,6 +37,14 @@ cmdlContainment::~cmdlContainment(){
 	UVs.clear();
 	Meshes.clear();
 	MaterialHeader.clear();
+}
+cmdlContainment::~cmdlContainment(){
+	candraw=0;
+	TextNo = 0;
+	vertexcount = 0;
+	uvcount = 0;
+	normalcount = 0;
+	
 }
 int cmdlContainment::LoadMaterialList(){
 	char buff[100]={0};
@@ -1004,7 +1013,7 @@ int cmdlContainment::ReadMeshes(FILE* fp, int segmentNum)//Adjusted o
 	fseek(fp,startPos + 0x40,SEEK_SET);
 
 	Meshes.push_back(struct_Mesh());
-
+	
 	struct_Mesh & mesh = Meshes.back();
 	mesh.GroupId = GroupId;
 	mesh.format = 0;

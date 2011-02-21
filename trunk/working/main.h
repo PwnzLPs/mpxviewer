@@ -276,6 +276,7 @@ class cmdlContainment{
 public:
 	cmdlContainment();
 	~cmdlContainment();
+	void DeleteMe();
 	CMDL_Header Header;
 	int Read(char* fstr);
 	int ReadHeader(FILE* fp);

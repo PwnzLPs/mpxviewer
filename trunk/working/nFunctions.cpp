@@ -384,8 +384,9 @@ int LoadFile(char* File){
 				xCamera=0.0f;
 				yCamera=0;//-0.8f;
 				zCamera=-5.0;//-2.6f;
-				MREA.~MREAData();
-				CMDL.~cmdlContainment();
+				//MREA.~MREAData();
+				//CMDL.~cmdlContainment();
+				CMDL.DeleteMe();
 				CMDL.Read((char*)filestr.c_str());
 				break;
 			case 1://Not supported yet TXTR
