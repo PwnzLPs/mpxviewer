@@ -23,6 +23,15 @@ clsMaterialHeader::~clsMaterialHeader(){
 		glDeleteTextures((GLsizei)TexturesIDs.size(), &TexturesIDs.front());
 	}
 	TexturesIDs.clear();
+
+	TextureNames.clear();
+
+	
+	
+	int i=0;
+	for(;i<MaterialSegments.size();i++) MaterialSegments[i].clear();
+	MaterialSegments.empty();
+
 }
 void clsMaterialHeader::ReadMaterialDataMP1_2(FILE* fp, unsigned int iSegment, std::vector<u32> & segmentSizes){
 	u32 i=0;
