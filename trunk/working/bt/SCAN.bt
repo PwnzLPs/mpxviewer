@@ -1,0 +1,27 @@
+#include "common-types.bt"
+
+SetReadOnly(true);
+
+// #pragma displayname("mrea structures")
+// #pragma fileextensions(".mrea")
+
+// #pragma byteorder(big_endian)
+BigEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+  struct scan_file{
+  uint32 fileVersion<format = hex>;
+  uint32 fileID<format = hex>;
+  uint32 frmetype;
+  uint32 stringfile;
+  uint32 unArray1[0x20];
+  uint8   un9;
+  uint32 u10;
+  uint32 TXTRfile;
+  uint8   unArray2[0x67];
+ };
+
+
+struct scan_file fileInfo;

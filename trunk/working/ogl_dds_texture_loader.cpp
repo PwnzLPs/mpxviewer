@@ -1,0 +1,921 @@
+//-----------------------------------------------------------------------------
+//           Name: ogl_dds_texture_loader.cpp
+//         Author: Kevin Harris
+//  Last Modified: 02/01/05
+//    Description: This sample demonstrates how to use ARB_texture_compression
+//                 to load .dds compressed texture files.
+//
+//   Control Keys: Left Mouse Button - Spin the view
+//                 F1 - Toggle between using a compressed texture and a  
+//                      regular texture.
+//                 Up Arrow   - View moves forward
+//                 Down Arrow - View moves backward
+//
+// NOTE: To create the compressed version of the original "lena.bmp" texture,
+//       I opened the texture file in Photoshop and flipped the image 
+//       vertically and saved it out as "lena_flipped.bmp". This is to 
+//       compensate for the .dds file format which is inverted. 
+//       Some programmers opt not to flip the image itself. Instead they 
+//       either flip it in their texture loader or adjust the texture 
+//       coordinates to flip it. I chose to flip the actual image since 
+//       I only had to fix one file. I've been tolds that this is how most 
+//       programmers choose to deal with this problem. If you have a large 
+//       collection of files to convert, there are command-line tools which 
+//       can automate the process.
+//
+//       I then used ATI's tool called "TheCompressonator" to generate mip-map 
+//       levels and compress the file using DXT1 compression. I originally 
+//       tried to use the "DirectX Texture Tool" that ships with DirectX 9.0c, 
+//       but I had problems loading the resulting .dds files. The
+//       dwLinearSize member of its DDSURFACEDESC2 struct always returns 0, 
+//       which causes problems since I can't load 0!
+//
+//       You can get ATI's "TheCompressonator" tool from here:
+//
+//       http://www.ati.com/developer/compressonator.html
+//
+//-----------------------------------------------------------------------------
+// Required for DirectX's DDSURFACEDESC2 structure definition
+//#include "resource.h"
+#include "main.h"
+//-----------------------------------------------------------------------------
+// FUNCTION POINTERS FOR OPENGL EXTENSIONS
+//-----------------------------------------------------------------------------
+
+// For convenience, this project ships with its own "glext.h" extension header 
+// file. If you have trouble running this sample, it may be that this "glext.h" 
+// file is defining something that your hardware doesn’t actually support. 
+// Try recompiling the sample using your own local, vendor-specific "glext.h" 
+// header file.
+
+// Sample's header file
+//#include <GL/glext.h> // Your local header file
+
+// ARB_texture_compression
+PFNGLCOMPRESSEDTEXIMAGE2DARBPROC glCompressedTexImage2DARB;
+//-----------------------------------------------------------------------------
+// GLOBALS
+//-----------------------------------------------------------------------------
+HWND   g_hWnd                = NULL;
+HDC    g_hDC                 = NULL;
+HGLRC  g_hRC                 = NULL;
+GLuint g_textureID           = -1;
+//GLuint g_compressedTextureID = -1;
+
+bool g_bUseCompressedTexture = true;
+
+float g_fDistance = -3.0f;
+float g_fSpinX    = 0.0f;
+float g_fSpinY    = 0.0f;
+
+struct Vertex
+{
+	float tu, tv;
+	float x, y, z;
+};
+
+Vertex g_quadVertices[] =
+{
+	{ 0.0f,0.0f, -1.0f,-1.0f, 0.0f },
+	{ 1.0f,0.0f,  1.0f,-1.0f, 0.0f },
+	{ 1.0f,1.0f,  1.0f, 1.0f, 0.0f },
+	{ 0.0f,1.0f, -1.0f, 1.0f, 0.0f }
+};
+
+struct DDS_IMAGE_DATA
+{
+	GLsizei  width;
+	GLsizei  height;
+	GLint    components;
+	GLenum   format;
+	int      numMipMaps;
+	GLubyte *pixels;
+};
+
+//-----------------------------------------------------------------------------
+// PROTOTYPES
+//-----------------------------------------------------------------------------
+/*int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance, 
+LPSTR lpCmdLine, int nCmdShow);
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+*/
+void loadCompressedTexture(DDS_IMAGE_DATA *pDDSImageData, GLuint* txtrno );
+DDS_IMAGE_DATA* loadDDSTextureFile( unsigned char* pnt );
+DDS_IMAGE_DATA* loadDDSTextureFile( const char *filename );
+void init(void);
+void render(void);
+void shutDown(void);
+bool loadDds( const char *filename, GLuint* txtrno );
+/*
+//-----------------------------------------------------------------------------
+// Name: WinMain()
+// Desc: The application's entry point
+//-----------------------------------------------------------------------------
+int WINAPI WinMain( HINSTANCE hInstance,
+HINSTANCE hPrevInstance,
+LPSTR     lpCmdLine,
+int       nCmdShow )
+{
+WNDCLASSEX winClass; 
+MSG        uMsg;
+
+memset(&uMsg,0,sizeof(uMsg));
+
+winClass.lpszClassName = "MY_WINDOWS_CLASS";
+winClass.cbSize        = sizeof(WNDCLASSEX);
+winClass.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+winClass.lpfnWndProc   = WindowProc;
+winClass.hInstance     = hInstance;
+winClass.hIcon         = NULL;//LoadIcon(hInstance, (LPCTSTR)IDI_OPENGL_ICON);
+winClass.hIconSm       = NULL;//LoadIcon(hInstance, (LPCTSTR)IDI_OPENGL_ICON);
+winClass.hCursor       = LoadCursor(NULL, IDC_ARROW);
+winClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+winClass.lpszMenuName  = NULL;
+winClass.cbClsExtra    = 0;
+winClass.cbWndExtra    = 0;
+
+if( !RegisterClassEx(&winClass) )
+return E_FAIL;
+
+g_hWnd = CreateWindowEx( NULL, "MY_WINDOWS_CLASS", 
+"OpenGL - Texture Compression Using .DDS Files",
+WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+0, 0, 640, 480, NULL, NULL, hInstance, NULL );
+
+if( g_hWnd == NULL )
+return E_FAIL;
+
+ShowWindow( g_hWnd, nCmdShow );
+UpdateWindow( g_hWnd );
+
+init();
+
+while( uMsg.message != WM_QUIT )
+{
+if( PeekMessage( &uMsg, NULL, 0, 0, PM_REMOVE ) )
+{
+TranslateMessage( &uMsg );
+DispatchMessage( &uMsg );
+}
+else
+render();
+}
+
+shutDown();
+
+UnregisterClass( "MY_WINDOWS_CLASS", hInstance );
+
+return uMsg.wParam;
+}
+
+//-----------------------------------------------------------------------------
+// Name: WindowProc()
+// Desc: The window's message handler
+//-----------------------------------------------------------------------------
+LRESULT CALLBACK WindowProc( HWND   hWnd, 
+UINT   msg, 
+WPARAM wParam, 
+LPARAM lParam )
+{
+static POINT ptLastMousePosit;
+static POINT ptCurrentMousePosit;
+static bool bMousing;
+
+switch( msg )
+{
+case WM_KEYDOWN:
+{
+switch( wParam )
+{
+case VK_ESCAPE:
+PostQuitMessage(0);
+break;
+
+case VK_F1:
+g_bUseCompressedTexture = !g_bUseCompressedTexture;
+break;
+
+case 38: // Up Arrow Key
+g_fDistance += 1.0f;
+break;
+
+case 40: // Down Arrow Key
+g_fDistance -= 1.0f;
+break;
+}
+}
+break;
+
+case WM_LBUTTONDOWN:
+{
+ptLastMousePosit.x = ptCurrentMousePosit.x = LOWORD (lParam);
+ptLastMousePosit.y = ptCurrentMousePosit.y = HIWORD (lParam);
+bMousing = true;
+}
+break;
+
+case WM_LBUTTONUP:
+{
+bMousing = false;
+}
+break;
+
+case WM_MOUSEMOVE:
+{
+ptCurrentMousePosit.x = LOWORD (lParam);
+ptCurrentMousePosit.y = HIWORD (lParam);
+
+if( bMousing )
+{
+g_fSpinX -= (ptCurrentMousePosit.x - ptLastMousePosit.x);
+g_fSpinY -= (ptCurrentMousePosit.y - ptLastMousePosit.y);
+}
+
+ptLastMousePosit.x = ptCurrentMousePosit.x;
+ptLastMousePosit.y = ptCurrentMousePosit.y;
+}
+break;
+
+case WM_SIZE:
+{
+int nWidth  = LOWORD(lParam); 
+int nHeight = HIWORD(lParam);
+glViewport(0, 0, nWidth, nHeight);
+
+glMatrixMode( GL_PROJECTION );
+glLoadIdentity();
+gluPerspective( 45.0, (GLdouble)nWidth / (GLdouble)nHeight, 0.1, 100.0);
+}
+break;
+
+case WM_CLOSE:
+{
+PostQuitMessage(0); 
+}
+
+case WM_DESTROY:
+{
+PostQuitMessage(0);
+}
+break;
+
+default:
+{
+return DefWindowProc( hWnd, msg, wParam, lParam );
+}
+break;
+}
+
+return 0;
+}
+*/
+//-----------------------------------------------------------------------------
+// Name: loadTexture()
+// Desc: 
+//-----------------------------------------------------------------------------
+void LoadTXTR(string fileName,GLuint*  txtrno){
+	GLuint txt=0;
+	memcpy(&txt,txtrno,sizeof(GLuint));
+	vector<unsigned char> btiArray;
+	if(dumpTxtr(fileName, &btiArray)==1){
+		MessageBox(0,"ERROR1","ERROR",MB_OK);
+		return;
+	}
+	if(dumpBti(&btiArray,std::string("Temp.dds"))==1){
+		MessageBox(0,"ERROR2","ERROR",MB_OK);
+		return ;
+	}
+
+	//loadCompressedTexture(loadDDSTextureFile( "Temp.dds" ), txtrno);
+	loadDds("Temp.dds", txtrno);
+	//memcpy(txtrno,&txt,sizeof(GLuint));
+	return ;
+}
+
+//-----------------------------------------------------------------------------
+// Name: loadCompressedTexture()
+// Desc: 
+//-----------------------------------------------------------------------------
+void loadCompressedTexture(DDS_IMAGE_DATA *pDDSImageData, GLuint* txtrno )
+{
+	// NOTE: Unlike "lena.bmp", "lena.dds" actually contains its own mip-map 
+	// levels, which are also compressed.
+	//DDS_IMAGE_DATA *pDDSImageData = 
+
+	if( pDDSImageData != NULL )
+	{
+		int nHeight     = pDDSImageData->height;
+		int nWidth      = pDDSImageData->width;
+		int nNumMipMaps = pDDSImageData->numMipMaps;
+
+		int nBlockSize;
+
+		if( pDDSImageData->format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
+			nBlockSize = 8;
+		else
+			nBlockSize = 16;
+
+		glGenTextures( 1, txtrno );
+		glBindTexture( GL_TEXTURE_2D, *txtrno );
+
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+		int nSize=0;
+		int nOffset = 0;
+
+		// Load the mip-map levels
+
+		for( int i = 0; i < nNumMipMaps; ++i )
+		{
+			if( nWidth  == 0 ) nWidth  = 1;
+			if( nHeight == 0 ) nHeight = 1;
+
+			nSize = ((nWidth+3)/4) * ((nHeight+3)/4) * nBlockSize;
+
+			glCompressedTexImage2DARB( GL_TEXTURE_2D,
+				i,
+				pDDSImageData->format,
+				nWidth,
+				nHeight,
+				0,
+				nSize,
+				pDDSImageData->pixels + nOffset );
+
+			nOffset += nSize;
+
+			// Half the image size for the next mip-map level...
+			nWidth  = (nWidth  / 2);
+			nHeight = (nHeight / 2);
+		}
+	}
+
+	if( pDDSImageData != NULL )
+	{
+		if( pDDSImageData->pixels != NULL )
+			free( pDDSImageData->pixels );
+
+		free( pDDSImageData );
+	}
+}
+DDS_IMAGE_DATA* loadDDSTextureFile( unsigned char* pnt )
+{
+	DDS_IMAGE_DATA *pDDSImageData;
+	DDSURFACEDESC2 ddsd;
+	char filecode[4];
+	//FILE *pFile;
+	int factor=0;
+	int bufferSize=0;
+	unsigned int i=0;
+	int readBytes=0;
+	// Open the file
+	/*  pFile = fopen( filename, "rb" );
+
+	if( pFile == NULL )
+	{
+	char str[255];
+	sprintf( str, "loadDDSTextureFile couldn't find, or failed to load \"%s\"", filename );
+	MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+	return NULL;
+	}*/
+
+	// Verify the file is a true .dds file
+	//    fread( filecode, 1, 4, pFile );
+	memcpy(filecode, pnt,4);
+	readBytes+=4;
+	if( strncmp( filecode, "DDS ", 4 ) != 0 )
+	{
+		char str[255]="Your mom failed";
+		//        sprintf( str, "The file \"%s\" doesn't appear to be a valid .dds file!", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		// fclose( pFile );
+		return NULL;
+	}
+
+	// Get the surface descriptor
+	//    fread( &ddsd, sizeof(ddsd), 1, pFile );
+	memcpy(&ddsd,&pnt[readBytes],sizeof(ddsd));
+	readBytes+=sizeof(ddsd);
+	pDDSImageData = (DDS_IMAGE_DATA*) malloc(sizeof(DDS_IMAGE_DATA));
+
+	memset( pDDSImageData, 0, sizeof(DDS_IMAGE_DATA) );
+
+	//
+	// This .dds loader supports the loading of compressed formats DXT1, DXT3 
+	// and DXT5.
+	//
+
+	switch( ddsd.ddpfPixelFormat.dwFourCC )
+	{
+	case FOURCC_DXT1:
+		// DXT1's compression ratio is 8:1
+		pDDSImageData->format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+		factor = 2;
+		break;
+
+	case FOURCC_DXT3:
+		// DXT3's compression ratio is 4:1
+		pDDSImageData->format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+		factor = 4;
+		break;
+
+	case FOURCC_DXT5:
+		// DXT5's compression ratio is 4:1
+		pDDSImageData->format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+		factor = 4;
+		break;
+
+	default:
+		char str[255];
+		// sprintf( str, "The file \"%s\" doesn't appear to be compressed "
+		//     "using DXT1, DXT3, or DXT5!", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		return NULL;
+	}
+
+	//
+	// How big will the buffer need to be to load all of the pixel data 
+	// including mip-maps?
+	//
+
+
+	/*
+	if( ddsd.dwMipMapCount > 1 )
+	bufferSize = ddsd.dwLinearSize * factor;
+	else
+	bufferSize = ddsd.dwLinearSize;
+	*/  bufferSize=(ddsd.dwHeight * ddsd.dwWidth);
+	for(i=1;i<ddsd.dwMipMapCount;i++){
+		bufferSize+= bufferSize/(i*2);
+
+	}
+	//bufferSize=(ddsd.dwHeight * ddsd.dwWidth)*ddsd.dwMipMapCount;
+	pDDSImageData->pixels = (unsigned char*)malloc(bufferSize * sizeof(unsigned char));
+
+	//fread( pDDSImageData->pixels, 1, bufferSize, pFile );
+	memcpy(pDDSImageData->pixels, &pnt[readBytes], bufferSize);
+	readBytes+=bufferSize;
+	// Close the file
+	//fclose( pFile );
+
+	pDDSImageData->width      = ddsd.dwWidth;
+	pDDSImageData->height     = ddsd.dwHeight;
+	pDDSImageData->numMipMaps = ddsd.dwMipMapCount;
+
+	if( ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1 )
+		pDDSImageData->components = 3;
+	else
+		pDDSImageData->components = 4;
+
+	return pDDSImageData;
+}
+DDS_IMAGE_DATA* loadDDSTextureFile( const char *filename )
+{
+	DDS_IMAGE_DATA *pDDSImageData;
+	DDSURFACEDESC2 ddsd;
+	char filecode[4];
+	FILE *pFile;
+	int factor=0;
+	int bufferSize=0;
+	unsigned int i=0;
+	// Open the file
+	pFile = fopen( filename, "rb" );
+
+	if( pFile == NULL )
+	{
+		char str[255];
+		sprintf( str, "loadDDSTextureFile couldn't find, or failed to load \"%s\"", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		return NULL;
+	}
+
+	// Verify the file is a true .dds file
+	fread( filecode, 1, 4, pFile );
+
+	if( strncmp( filecode, "DDS ", 4 ) != 0 )
+	{
+		char str[255];
+		sprintf( str, "The file \"%s\" doesn't appear to be a valid .dds file!", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		// fclose( pFile );
+		return NULL;
+	}
+
+	// Get the surface descriptor
+	fread( &ddsd, sizeof(ddsd), 1, pFile );
+
+	pDDSImageData = (DDS_IMAGE_DATA*) malloc(sizeof(DDS_IMAGE_DATA));
+
+	memset( pDDSImageData, 0, sizeof(DDS_IMAGE_DATA) );
+
+	//
+	// This .dds loader supports the loading of compressed formats DXT1, DXT3 
+	// and DXT5.
+	//
+
+	if (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
+	{
+		switch( ddsd.ddpfPixelFormat.dwFourCC )
+		{
+		case FOURCC_DXT1:
+			// DXT1's compression ratio is 8:1
+			pDDSImageData->format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+			factor = 2;
+			break;
+
+		case FOURCC_DXT3:
+			// DXT3's compression ratio is 4:1
+			pDDSImageData->format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+			factor = 4;
+			break;
+
+		case FOURCC_DXT5:
+			// DXT5's compression ratio is 4:1
+			pDDSImageData->format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			factor = 4;
+			break;
+
+		default:
+			char str[255];
+			sprintf( str, "The file \"%s\" doesn't appear to be compressed "
+				"using DXT1, DXT3, or DXT5!", filename );
+			MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+			return NULL;
+		}
+	}
+	else
+	{
+		char str[255];
+		sprintf( str, "The file \"%s\" doesn't appear to be compressed "
+			"using DXT1, DXT3, or DXT5!", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		return NULL;
+	}
+
+	bufferSize=(ddsd.dwHeight * ddsd.dwWidth);
+	for(i=1;i<ddsd.dwMipMapCount;i++){
+		bufferSize+= bufferSize/(i*2);
+
+	}
+	//bufferSize=(ddsd.dwHeight * ddsd.dwWidth)*ddsd.dwMipMapCount;
+	pDDSImageData->pixels = (unsigned char*)malloc(bufferSize * sizeof(unsigned char));
+
+	fread( pDDSImageData->pixels, 1, bufferSize, pFile );
+
+	// Close the file
+	fclose( pFile );
+
+	pDDSImageData->width      = ddsd.dwWidth;
+	pDDSImageData->height     = ddsd.dwHeight;
+	pDDSImageData->numMipMaps = ddsd.dwMipMapCount;
+
+	if( ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1 )
+		pDDSImageData->components = 3;
+	else
+		pDDSImageData->components = 4;
+
+	return pDDSImageData;
+}
+//-----------------------------------------------------------------------------
+// Name: init()
+// Desc: 
+//-----------------------------------------------------------------------------
+void init( void )
+{
+
+	char *ext = (char*)glGetString( GL_EXTENSIONS );
+
+	if( strstr( ext, "ARB_texture_compression" ) == NULL )
+	{
+		MessageBox(NULL,"ARB_texture_compression extension was not found",
+			"ERROR",MB_OK|MB_ICONEXCLAMATION);
+		return;
+	}
+	else
+	{
+		glCompressedTexImage2DARB = (PFNGLCOMPRESSEDTEXIMAGE2DARBPROC)wglGetProcAddress("glCompressedTexImage2DARB");
+
+		if( !glCompressedTexImage2DARB )
+		{
+			MessageBox(NULL,"One or more ARB_texture_compression functions were not found",
+				"ERROR",MB_OK|MB_ICONEXCLAMATION);
+			return;
+		}
+	}
+
+
+	//LoadTXTR(std::string("01_3c2dd9c1.TXTR"));
+}
+
+//-----------------------------------------------------------------------------
+// Name: shutDown()
+// Desc: 
+//-----------------------------------------------------------------------------
+void shutDown( void )   
+{
+	//// glDeleteTextures( 1, &g_textureID );
+	// glDeleteTextures( 1, &g_compressedTextureID );
+	///
+	if( g_hRC != NULL )
+	{
+		wglMakeCurrent( NULL, NULL );
+		wglDeleteContext( g_hRC );
+		g_hRC = NULL;
+	}
+
+	if( g_hDC != NULL )
+	{
+		ReleaseDC( g_hWnd, g_hDC );
+		g_hDC = NULL;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Name: render()
+// Desc: 
+//-----------------------------------------------------------------------------
+void render( void )
+{
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+	glMatrixMode( GL_MODELVIEW );
+	glLoadIdentity();
+	glTranslatef( 0.0f, 0.0f, g_fDistance );
+	// glRotatef( -g_fSpinY, 1.0f, 0.0f, 0.0f );
+	// glRotatef( -g_fSpinX, 0.0f, 1.0f, 0.0f );
+
+
+	//    glBindTexture( GL_TEXTURE_2D, g_compressedTextureID );
+
+
+	glInterleavedArrays( GL_T2F_V3F, 0, g_quadVertices );
+	glDrawArrays( GL_QUADS, 0, 4 );
+
+	//glDisable(GL_BLEND);
+
+	SwapBuffers( g_hDC );
+}
+
+
+
+// NOTE: this will more than likely need to be cleaned up later and made more robust, works for now though
+#define PF_IS_DXT1(pf) \
+	((pf.dwFlags & DDPF_FOURCC) && \
+	(pf.dwFourCC == FOURCC_DXT1)) //D3DFMT_DXT1))
+
+#define PF_IS_DXT3(pf) \
+	((pf.dwFlags & DDPF_FOURCC) && \
+	(pf.dwFourCC == FOURCC_DXT3)) //D3DFMT_DXT3))
+
+#define PF_IS_DXT5(pf) \
+	((pf.dwFlags & DDPF_FOURCC) && \
+	(pf.dwFourCC == FOURCC_DXT5)) //D3DFMT_DXT5))
+
+#define PF_IS_BGRA8(pf) \
+	((pf.dwFlags & DDPF_RGB) && \
+	(pf.dwFlags & DDPF_ALPHAPIXELS) && \
+	(pf.dwRGBBitCount == 32) && \
+	(pf.dwRBitMask == 0xff0000) && \
+	(pf.dwGBitMask == 0xff00) && \
+	(pf.dwBBitMask == 0xff) && \
+	(pf.dwRGBAlphaBitMask == 0xff000000U))
+
+#define PF_IS_BGR8(pf) \
+	((pf.dwFlags & DDPF_RGB) && \
+	!(pf.dwFlags & DDPF_ALPHAPIXELS) && \
+	(pf.dwRGBBitCount == 24) && \
+	(pf.dwRBitMask == 0xff0000) && \
+	(pf.dwGBitMask == 0xff00) && \
+	(pf.dwBBitMask == 0xff))
+
+#define PF_IS_BGR5A1(pf) \
+	((pf.dwFlags & DDPF_RGB) && \
+	(pf.dwFlags & DDPF_ALPHAPIXELS) && \
+	(pf.dwRGBBitCount == 16) && \
+	(pf.dwRBitMask == 0x00007c00) && \
+	(pf.dwGBitMask == 0x000003e0) && \
+	(pf.dwBBitMask == 0x0000001f) && \
+	(pf.dwRGBAlphaBitMask == 0x00008000))
+
+#define PF_IS_BGR565(pf) \
+	((pf.dwFlags & DDPF_RGB) && \
+	!(pf.dwFlags & DDPF_ALPHAPIXELS) && \
+	(pf.dwRGBBitCount == 16) && \
+	(pf.dwRBitMask == 0x0000f800) && \
+	(pf.dwGBitMask == 0x000007e0) && \
+	(pf.dwBBitMask == 0x0000001f))
+
+#define PF_IS_INDEX8(pf) \
+	((pf.dwFlags & DDPF_PALETTEINDEXED8) && \
+	(pf.dwRGBBitCount == 8))
+
+struct DdsLoadInfo {
+	bool compressed;
+	bool swap;
+	bool palette;
+	unsigned int divSize;
+	unsigned int blockBytes;
+	GLenum internalFormat;
+	GLenum externalFormat;
+	GLenum type;
+};
+
+DdsLoadInfo loadInfoDXT1 = {
+	true, false, false, 4, 8, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
+};
+DdsLoadInfo loadInfoDXT3 = {
+	true, false, false, 4, 16, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
+};
+DdsLoadInfo loadInfoDXT5 = {
+	true, false, false, 4, 16, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+};
+DdsLoadInfo loadInfoBGRA8 = {
+	false, false, false, 1, 4, GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE
+};
+DdsLoadInfo loadInfoBGR8 = {
+	false, false, false, 1, 3, GL_RGB8, GL_BGR, GL_UNSIGNED_BYTE
+};
+DdsLoadInfo loadInfoBGR5A1 = {
+	false, true, false, 1, 2, GL_RGB5_A1, GL_BGRA, GL_UNSIGNED_SHORT_1_5_5_5_REV
+};
+DdsLoadInfo loadInfoBGR565 = {
+	false, true, false, 1, 2, GL_RGB5, GL_RGB, GL_UNSIGNED_SHORT_5_6_5
+};
+DdsLoadInfo loadInfoIndex8 = {
+	false, false, true, 1, 1, GL_RGB8, GL_BGRA, GL_UNSIGNED_BYTE
+};
+
+
+bool loadDds( const char *filename, GLuint* txtrno )
+{
+	DDS_IMAGE_DATA *pDDSImageData;
+	DDSURFACEDESC2 ddsd;
+	char filecode[4];
+	FILE *pFile;
+	int factor=0;
+	int bufferSize=0;
+	int i=0;
+	// Open the file
+	pFile = fopen( filename, "rb" );
+
+	if( pFile == NULL )
+	{
+		char str[255];
+		sprintf( str, "loadDDSTextureFile couldn't find, or failed to load \"%s\"", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		return false;
+	}
+
+	// Verify the file is a true .dds file
+	fread( filecode, 1, 4, pFile );
+
+	if( strncmp( filecode, "DDS ", 4 ) != 0 )
+	{
+		char str[255];
+		sprintf( str, "The file \"%s\" doesn't appear to be a valid .dds file!", filename );
+		MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+		// fclose( pFile );
+		return false;
+	}
+
+	// Get the surface descriptor
+	fread( &ddsd, sizeof(ddsd), 1, pFile );
+
+	//pDDSImageData = (DDS_IMAGE_DATA*) malloc(sizeof(DDS_IMAGE_DATA));
+
+	//memset( pDDSImageData, 0, sizeof(DDS_IMAGE_DATA) );
+
+	unsigned int xSize = ddsd.dwWidth;
+	unsigned int ySize = ddsd.dwHeight;
+	assert( !(xSize & (xSize-1)) );
+	assert( !(ySize & (ySize-1)) );
+
+	DdsLoadInfo * li;
+
+	if( PF_IS_DXT1( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoDXT1;
+	}
+	else if( PF_IS_DXT3( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoDXT3;
+	}
+	else if( PF_IS_DXT5( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoDXT5;
+	}
+	else if( PF_IS_BGRA8( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoBGRA8;
+	}
+	else if( PF_IS_BGR8( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoBGR8;
+	}
+	else if( PF_IS_BGR5A1( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoBGR5A1;
+	}
+	else if( PF_IS_BGR565( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoBGR565;
+	}
+	else if( PF_IS_INDEX8( ddsd.ddpfPixelFormat ) ) {
+		li = &loadInfoIndex8;
+	}
+	else {
+		goto failure;
+	}
+
+	glGenTextures( 1, txtrno );
+	glBindTexture( GL_TEXTURE_2D, *txtrno );
+
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+	//fixme: do cube maps later
+	//fixme: do 3d later
+	unsigned int x = xSize;
+	unsigned int y = ySize;
+	bool hasMipmaps_ = false;
+	glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
+	unsigned int mipMapCount = (ddsd.dwFlags & DDSD_MIPMAPCOUNT) ? ddsd.dwMipMapCount : 1;
+	if( mipMapCount > 1 ) {
+		hasMipmaps_ = true;
+	}
+	if( li->compressed ) {
+		size_t size = max( li->divSize, x )/li->divSize * max( li->divSize, y )/li->divSize * li->blockBytes;
+		//assert( size == ddsd.dwLinearSize );
+		//assert( ddsd.dwFlags & DDSD_LINEARSIZE );
+		unsigned char * data = (unsigned char *)malloc( size );
+		if( !data ) {
+			goto failure;
+		}
+		GLenum format = /*cFormat =*/ li->internalFormat;
+		for( unsigned int ix = 0; ix < mipMapCount; ++ix ) {
+			fread( data, 1, size, pFile );
+			glCompressedTexImage2DARB( GL_TEXTURE_2D, ix, li->internalFormat, x, y, 0, size, data );
+
+			x = (x+1)>>1;
+			y = (y+1)>>1;
+			size = max( li->divSize, x )/li->divSize * max( li->divSize, y )/li->divSize * li->blockBytes;
+		}
+		free( data );
+	}
+	else if( li->palette ) {
+		//  currently, we unpack palette into BGRA
+		//  I'm not sure we always get pitch...
+		assert( ddsd.dwFlags & DDSD_PITCH );
+		assert( ddsd.ddpfPixelFormat.dwRGBBitCount == 8 );
+		size_t size = ddsd.dwLinearSize * ySize;
+		//  And I'm even less sure we don't get padding on the smaller MIP levels...
+		assert( size == x * y * li->blockBytes );
+		GLenum format = li->externalFormat;
+		//cFormat = li->internalFormat;
+		unsigned char * data = (unsigned char *)malloc( size );
+		unsigned int palette[ 256 ];
+		unsigned int * unpacked = (unsigned int *)malloc( size*sizeof( unsigned int ) );
+		fread( palette, 4, 256, pFile );
+		for( unsigned int ix = 0; ix < mipMapCount; ++ix ) {
+			fread( data, 1, size, pFile );
+			for( unsigned int zz = 0; zz < size; ++zz ) {
+				unpacked[ zz ] = palette[ data[ zz ] ];
+			}
+			glPixelStorei( GL_UNPACK_ROW_LENGTH, x );
+			glTexImage2D( GL_TEXTURE_2D, ix, li->internalFormat, x, y, 0, li->externalFormat, li->type, unpacked );
+
+			x = (x+1)>>1;
+			y = (y+1)>>1;
+			size = x * y * li->blockBytes;
+		}
+		free( data );
+		free( unpacked );
+	}
+	else {
+		if( li->swap ) {
+			glPixelStorei( GL_UNPACK_SWAP_BYTES, GL_TRUE );
+		}
+		unsigned int size = x * y * li->blockBytes;
+		GLenum format = li->externalFormat;
+		//cFormat = li->internalFormat;
+		unsigned char * data = (unsigned char *)malloc( size );
+		//fixme: how are MIP maps stored for 24-bit if pitch != ySize*3 ?
+		for( unsigned int ix = 0; ix < mipMapCount; ++ix ) {
+			fread( data, 1, size, pFile );
+			glPixelStorei( GL_UNPACK_ROW_LENGTH, x );
+			glTexImage2D( GL_TEXTURE_2D, ix, li->internalFormat, x, y, 0, li->externalFormat, li->type, data );
+
+			x = (x+1)>>1;
+			y = (y+1)>>1;
+			size = x * y * li->blockBytes;
+		}
+		free( data );
+		glPixelStorei( GL_UNPACK_SWAP_BYTES, GL_FALSE );
+	}
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipMapCount-1 );
+
+	return true;
+
+failure:
+	glDeleteTextures( 1, txtrno );
+	*txtrno = 0;
+
+	char str[255];
+	sprintf( str, "The file \"%s\" doesn't appear to be in a supported format!", filename );
+	MessageBox( NULL, str, "ERROR", MB_OK|MB_ICONEXCLAMATION );
+	return false;
+}
