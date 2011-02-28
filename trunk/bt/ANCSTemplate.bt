@@ -1,0 +1,142 @@
+/*****************************************************************************
+ * ancs.bt - Structure definitions for Metroid Prime - ancs file related entities.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2009/09/28 - GWC - Original
+ */
+
+#include "common-types.bt"
+
+SetReadOnly(true);
+
+// #pragma displayname("ancs structures")
+// #pragma fileextensions(".ancs")
+
+// #pragma byteorder(big_endian)
+BigEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+// ANCS_FILE File Structure
+struct ANCS_FILE
+{
+//	#pragma lockAt(0x00000000)
+
+	// ANCS_HEADER - ANCS file header information structure
+	struct ANCS_HEADER
+	{
+		// 0x00
+		uint16 unknown0x00;
+		uint16 unknown0x02;
+		uint32 unknownCount0x04;
+	} fileHeader;
+	
+	struct
+	{
+		struct
+		{
+			struct
+			{
+				uint16 unknown0x00;
+				uint16 unknown0x02;
+				uint16 unknown0x04;
+				string name;
+				uint32 modelID <format = hex>;
+				uint32 skinningID <format = hex>;
+				uint32 skeletonID <format = hex>;
+			} animationHeader;
+			
+			struct
+			{
+				uint32 unknownCount0x00;
+				struct
+				{
+					struct
+					{
+						uint32 index;
+						uint8  padding; // ?
+						string animationName;
+					} animationInfo[unknownCount0x00] <optimize = false>;
+				} animationInfo;
+			} animationInfo;
+			
+			struct
+			{
+				char PAS4[4]; // 'PAS4' - not sure the purpose of this yet;
+				uint32 unknown0x04;
+				uint32 unknown0x08; // usually 0xFFFFFFFF
+				if (0 < unknown0x04)
+				{
+					// NOTE: a hack, can't remember what file this was for now, but it was more than likely one of the larger ones
+					//uint8 tempUnknonwn[0x1AF]; // REMOVE ME!!!!
+				}
+			} unknownData0;
+			
+			struct
+			{
+				uint32 particleCount;
+				if (0 < particleCount)
+				{
+					uint32 particleID[particleCount] <format = hex>;
+				}
+			} particleInfo;
+			
+			// NOTE:  this is just a hack, this seems to vary or i have missed
+			// something in the previous struture that would account for this
+			uint32 padding0[3];
+			
+			struct
+			{
+				uint32 unknown0x00;
+				uint32 unknownCount0x04;
+				struct
+				{
+					struct
+					{
+						string name;
+						float3 minBounds;
+						float3 maxBounds;
+					} unknownData0x08[unknownCount0x04] <optimize = false>;
+				} unknownData0x08;
+			} unknownData1;
+			
+			struct
+			{
+				uint32 unknownCount0x00;
+				if (0 < unknownCount0x00)
+				{
+					struct
+					{
+						struct
+						{
+							string name;
+							uint32 unknown0;
+							string effectName;
+							char PART[4]; // 'PART'
+							uint32 particleID <format = hex>;
+							string jointName;
+							float unknown1;
+							uint32 unknown2;
+							uint32 unknown3;
+						} unknownData0x04[unknownCount0x00];
+					} unknownData0x04;
+				}
+			} unknownData2;
+			
+			uint32 padding1[2];
+			
+			struct
+			{
+				uint32 unknownCount0x00;
+				if (0 < unknownCount0x00)
+				{
+					uint32 unknown0x04[unknownCount0x00];
+				}
+			} indexInfo;
+		} animationData[fileHeader.unknownCount0x04] <optimize = false>;
+	} animationData;
+};
+
+struct ANCS_FILE fileInfo;
