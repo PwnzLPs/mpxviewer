@@ -1,0 +1,53 @@
+#include "common-types.bt"
+
+SetReadOnly(true);
+
+// #pragma displayname("mrea structures")
+// #pragma fileextensions(".mrea")
+
+// #pragma byteorder(big_endian)
+BigEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+struct struct014{
+union{
+							uint8 Data[size];
+							struct{
+							 uint16 unknown0 <format = hex>;
+							 uint16 unknown1 <format = hex>;
+							 uint8 unknown20 <format = hex>;
+                             uint8 unknown2 <format = hex>;
+							 uint16 unknown30 <format = hex>;
+							  local int64 nsize=size;
+							   if(unknown2!=0 && unknown2 != 0xA1){
+									   nsize=size-(unknown2*0xC); 
+									   local int64 i=0;
+									  struct{
+									   for(i=0;i<(unknown2);i++){
+									   struct{
+									   uint32 u1 <format = hex>;
+									   uint32 u2 <format = hex>;
+									   uint32 u3 <format = hex>;
+									  }UnknownStruct;
+
+									 }
+								 }midData;
+							   }
+							  uint16 scriptType <format = hex>;
+							  string Name;
+
+
+  case 0x14:
+                                    Printf("0x14 num: %d \n",scriptnum);
+                                    /*  float3  TranslateValues;
+                                      uint32  u1;
+                                      uint32  u2;
+                                      uint32  u3;
+                                      uint16  u4;*/
+                                     if(nsize>0)uint8 data[nsize-Strlen(Name)-8-2];
+                                    break;
+
+}
+
+struct014 struct;

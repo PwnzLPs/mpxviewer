@@ -1,0 +1,310 @@
+/*****************************************************************************
+ * mrea.bt - Structure definitions for Metroid Prime - mrea file related entities.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2009/10/15 - GWC - Original
+ */
+
+#include "common-types.bt"
+
+SetReadOnly(true);
+
+// #pragma displayname("mrea structures")
+// #pragma fileextensions(".mrea")
+
+// #pragma byteorder(big_endian)
+BigEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+// MREA_FILE File Structure
+struct MREA_FILE
+{
+//	#pragma lockAt(0x00000000)
+    FSeek(0x326C2660);
+	// MREA_FILE File Header Structure - 0x10 (16) bytes
+	struct MREA_HEADER
+	{
+		// 0x00
+		uint32 fileID <format = hex>;
+		uint32 fileVersion;
+		float3x4 transformMatrix;
+		uint32 meshCount;
+		uint32 sectionCount;
+		uint32 unknownCounts0x40[8];
+		uint32 sectionSizes[sectionCount] <format = hex>;
+	} fileHeader;
+
+	// move to next 32-byte boundary
+	FSkip((0x20 - (FTell() % 0x20)) % 0x20);
+
+	local int64 fileOffset = FTell();
+	local uint32 fileSection = 0;
+	
+	struct
+	{
+		uint32 textureCount;
+		uint32 textureIDs[textureCount] <format = hex>; // ids for TXTR files
+		uint32 groupCount;
+		uint32 groupOffsets[groupCount] <format = hex>; // similar to index data section information later in the file, appears to be offset to next group from beginning of the current one
+
+		local uint32 dataNum = 0;
+		local int64 filePos = FTell();
+		struct
+		{
+			for (dataNum = 0; dataNum < groupCount; ++dataNum)
+			{
+				struct
+				{
+					uint32 unknown0x00 <format = hex>; // usually of the form 0x00011083, 0x00071083, 0x00031013 - 0x00??10?? - unknown purpose
+					uint32 textureCount;
+					uint32 textureIndices[textureCount]; // index into main header texture list
+					uint32 unknown0;
+					uint32 unknown1;
+					if ((unknown0x00 & 0xD00) == 0xD00)
+					{
+						uint32 unknown1a;
+					}
+					// unsure, this is just a hack for now
+					// need to determine if this is present under any other circumstances
+					if ((unknown0x00 & 0xF) == 0xB)
+					{
+						uint32 unknownCount0;
+						uint32 unknownData0[unknownCount0];
+					}
+					uint32 unknown2[3];
+					uint32 unknownCount1; // usually seems to match the texture count
+					struct
+					{
+						struct
+						{
+							uint32 unknown0x00 <format = hex>; // usually of the form 0x0007A14F - 0x000????F - unknown purpose
+							uint32 unknown0x04 <format = hex>; // usually of the form 0x00021CE7 - 0x000?1CE7 - unknown purpose
+							uint32 unknown0x08;
+							uint32 unknown0x0C;
+							uint32 unknown0x10 <format = hex>; // 0x00000004,  0x00000006,  0x000000FF
+						} unknownData0x00[unknownCount1];
+						struct
+						{
+							uint8 unknown0x00[4]; // 0x00000000, 0x00000101, 0x00000202, 0x00000303 - unknown purpose, some sort of indexing perhaps?
+						} unknownData0x14[unknownCount1];
+					} unknownData1;
+					uint32 unknownCount2; // usually seems to match the texture count
+					uint32 unknownData2[unknownCount2] <format = hex>; // usually of the form 0x001EBC40, 0x001EBC50, 0x001EBC60, 0x001E8040, 0x00004010 - unknownPurpose
+					uint32 unknownSize0;
+					if (0 < unknownSize0)
+					{
+						union
+						{
+							uint8 dataBytes0x00[unknownSize0];
+							struct
+							{
+								uint32 unknown0x00[unknownSize0 >> 2];
+							} unknownData0x00;
+						} unknownData3;
+					}
+				} materialGroups;
+				
+				FSeek(filePos + groupOffsets[dataNum]);
+			}
+		} materialGroups;
+	} headerSection;
+
+	FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+	fileOffset = FTell();
+	++fileSection;
+	
+	struct
+	{
+		local uint32 meshNum = 0;
+		for (meshNum = 0; meshNum < fileHeader.meshCount; ++meshNum)
+		{
+			struct
+			{
+				struct
+				{
+					// 0x00
+					uint32 fileID <format = hex>;
+					float3x4 transformMatrix;
+					float2x3 boundingBox;
+				} header;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+
+				struct
+				{
+					// 0x00
+					float3 vertices[fileHeader.sectionSizes[fileSection] / 0x0C];
+				} vertices;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+
+				struct
+				{
+					struct
+					{
+						// 0x00
+						int16 normal[3];
+					} normals[fileHeader.sectionSizes[fileSection] / 0x06];
+				} normals;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+
+				struct
+				{
+					// 0x00
+					uint32 zeroData[fileHeader.sectionSizes[fileSection] / 0x04];
+				} zeroData;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+
+				struct
+				{
+					// 0x00
+					float2 textureCoords[fileHeader.sectionSizes[fileSection] / 0x08];
+				} textureCoords;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+
+				struct
+				{
+					// 0x00
+					uint32 unknownValues[fileHeader.sectionSizes[fileSection] / 0x04] <format = hex>;
+				} unknownValues;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+
+				// sub-mesh section offsets
+				struct
+				{
+					uint32 subMeshCount;
+					uint32 subMeshOffsets[subMeshCount] <format = hex>;
+				} subMeshOffsets;
+
+				FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+				fileOffset = FTell();
+				++fileSection;
+				
+				struct
+				{
+					local uint32 subMeshNum = 0;
+					for (subMeshNum = 0; subMeshNum < subMeshOffsets.subMeshCount; ++subMeshNum)
+					{
+						struct
+						{
+							// 0x00
+							float3 unknown0x00; // not sure yet
+							uint32 groupID; // index into material group in header sections
+							// 0x10
+							uint16 unknown0x10; // usually 32768 - unknown prupose
+							uint16 dataSize <format = hex>;
+							uint32 unknown0x14[2];
+							uint32 unknownCount0x1C;
+							// 0x20
+							float3 unknown0x20; // not sure yet
+							float2x3 boundingBox;
+							// 0x30
+							uint32 unknown0x30[7];
+							// 0x60
+							union
+							{
+								uint8 dataBytes[dataSize];
+/*								struct
+								{
+									local int64 stopPos = FTell() + dataSize;
+									while (false && (0 != ReadUByte(FTell())) && (FTell() < stopPos))
+									{
+										struct
+										{
+											uint8 formatFlags;
+											uint16 dataCount;
+											struct
+											{
+												uint16 vertexIndex;
+												uint16 normalIndex;
+												// still need to figure out how to determine the number of indices present
+												// my guess is that is is somewhere in the still unknown header section data
+												uint16 uvIndex;
+											} indices[dataCount];
+										} indexData;
+									}
+								} indexData;
+*/							} indexData;
+						} subMeshes;
+
+						FSeek(fileOffset + fileHeader.sectionSizes[fileSection]);
+						fileOffset = FTell();
+						++fileSection;
+					}
+				} subMeshes;
+			} meshData;
+		}
+	} meshData;
+	
+	Printf("Final section number %d.\n", fileSection);
+struct { 
+        uint32 fileID; 
+        uint32 fileVersion; 
+        uint32 fileFormat; 
+        uint32 meshCount;
+        uint32 unknown2;
+        float  boundingBox[6];
+        uint32 unArray[5];
+        float  max1;
+        float  min1;
+        float  max2;
+        float  min2;
+        uint32   data[(fileHeader.sectionSizes[fileSection]-80)/4];
+      }fileAROT;
+   fileSection++;
+   local int64 fileOffset2 = FTell()+(fileHeader.sectionSizes[fileSection]);
+    struct {
+    char SCLY[4];
+    uint32 dataVersion;
+    uint32 dataID;
+    uint32 ScriptSize;
+     switch(dataID)
+       {
+        case 0x1:
+         uint32 flags[1];
+        break;
+        case 0x02:
+        uint32 flags[2];
+        break;
+        case 0x03:
+        uint32 flags[3];
+        break;
+        
+        default:
+printf("Check the SCLY data");
+        uint32 flags[2];
+        break;
+       }
+SetForeColor(cRed);
+    while(ftell() < FileOffset2){
+    uint16 size;
+    uint16 pad;
+    uint8 data[size];
+    
+    }
+     //uint32 data[ScriptSize/4];
+    }Script_Layer;
+   fileSection++;
+  
+};
+
+struct MREA_FILE fileInfo;
