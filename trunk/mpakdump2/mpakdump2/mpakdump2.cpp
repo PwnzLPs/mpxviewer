@@ -38,7 +38,7 @@ void MakeMP12Head(char* dir){
 	toWORD(h.unk1);
 	toWORD(h.unk2);
 	toDWORD(h.unk3);
-	f+="header.bin";
+	f+="/header.bin";
 	FILE* fp=fopen(f.c_str(),"w+b");
 	if(fp){
 
@@ -46,6 +46,7 @@ void MakeMP12Head(char* dir){
 		fclose(fp);
 	}
 }
+
 void MakeMP3Head(char* dir){
 	MPakHeader h;
 	string f=dir;
@@ -70,7 +71,7 @@ void mpakPak(char* dir)
 	MPakHeader h;
 	std::string name=dir;
 	name+="/header.bin";
-	int t;
+	int t = 0;
 	FILE*fp=fopen(name.c_str(),"r+b");
 	if(fp){
 		fseek(fp, 0, SEEK_SET);
@@ -92,11 +93,12 @@ void mpakPak(char* dir)
 		}
 	}else{
 		printf("No header file was detected.\nPlease choose a pak type below.\nType 1 for MP1 and 2 paks\nType 2 for MP3 Paks\n");
-		scanf("%d",t);
+		std::cin >> t;
 		if(t&2){
 			MakeMP3Head(dir);
 			//mpakPack_v2(dir)
 		}else{
+			MakeMP12Head(dir);
 			mpakPack_v1(dir);
 			//  MakeMP12Head(dir);
 		}
@@ -127,6 +129,7 @@ void mpakDump(FILE* f, const std::string& name)
 		cout << "Unknown pak file version!" << endl;
 	}
 }
+
 int findextension(char* str){
 	string file=str;
 	return file.find(".");
