@@ -57,8 +57,9 @@ void FillEntry(Entry* e, char* FileN){
 
 
 	}
+	e->isCompressed = 0;
 	name = &FileN[i];
-	if(name.c_str()[0]=='0'){
+	if(name.c_str()[0] == '0'){
 		e->isCompressed = 0;
 	}else{
 		e->isCompressed = 1;
@@ -70,6 +71,7 @@ void FillEntry(Entry* e, char* FileN){
 	memcpy(e->tag, &name.c_str()[end+1],4);
 	name=name;
 }
+
 void PackEntries(char* dir, FILE* mainfile, vector<string> FileNames){
 	int i;
 	EntryHeader neh;
@@ -119,18 +121,19 @@ void PackEntries(char* dir, FILE* mainfile, vector<string> FileNames){
 		e.offset = startpos + sizeof(e)*FileEntries.size() + loc;
 		e.length = insertFile(string(dir)+string("/")+FileEntries[i],fdata);
 		
-		toDWORD(e.isCompressed);
+		cout << e.isCompressed << " " << string(e.tag, 4) << " id: " << e.id
+		<< " length: " << e.length
+		<< " offset: " << e.offset << " " << endl;
+		
+		assert(e.isCompressed == 0 || e.isCompressed == 1);
+	    toDWORD(e.isCompressed);
 		
 		toDWORD(e.id);
 		
 		toDWORD(e.length);
 		toDWORD(e.offset);
 		fwrite(&e, sizeof(e), 1,  mainfile);
-		cout << e.isCompressed << " " << string(e.tag, 4) << " id: " << e.id
-		<< " length: " << e.length
-		<< " offset: " << e.offset << " " << endl;
-		
-		assert(e.isCompressed == 0 || e.isCompressed == 1);
+
 		count += e.isCompressed;
 		
 		//dump file
