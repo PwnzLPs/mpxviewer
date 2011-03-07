@@ -75,7 +75,7 @@ struct NameEntry_v3
 
 struct Entry
 {
-	u32 unk; //0 or 1 (isCompressed flag?) //this is the first field, see metroid4.pak
+	u32 isCompressed; //0 or 1 (isCompressed flag?) //this is the first field, see metroid4.pak
 	char tag[4];
 	u32 id;
 	u32 length;
@@ -83,7 +83,7 @@ struct Entry
 };
 struct Entry_v3
 {
-	u32 unk; //0 or 1 (isCompressed flag?) //this is the first field, see metroid4.pak
+	u32 isCompressed; //0 or 1 (isCompressed flag?) //this is the first field, see metroid4.pak
 	char tag[4];
 	u64 id;
 	u32 length;
@@ -94,7 +94,7 @@ struct Entry_v3
 namespace std
 {
 	template<class T>
-		T min(T a, T b)
+	T min(T a, T b)
 	{
 		return a < b ? a : b;
 	}

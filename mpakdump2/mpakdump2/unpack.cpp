@@ -7,20 +7,20 @@ void dumpFile(const std::string& name, FILE* src, u32 offset, u32 length)
 	
 	FILE* out = fopen(name.c_str(), "wb");
 	if(out == NULL)
-		return;
+	return;
 	
 	u32 read = 0;
 	u8 buff[1024];
 	while(read < length)
 	{
 		int r = fread(buff, 1, 
-			
-			
-			//std::min(1024u, length - read)
-			1024u < length - read ? 1024u : length - read
-			
-			
-			, src);
+		
+		
+		
+		1024u < length - read ? 1024u : length - read
+		
+		
+		, src);
 		fwrite(buff, 1, r, out);
 		read += r;
 	}
@@ -28,14 +28,14 @@ void dumpFile(const std::string& name, FILE* src, u32 offset, u32 length)
 	fclose(out);
 	fseek(src, t, SEEK_SET);
 }
-	
+
 void mpakDump_v1(FILE* f, const std::string& name)
 {
 	int i;
 	MPakHeader h;
 	string tmp;
+	EntryHeader eh;
 	fseek(f, 0, SEEK_SET);
-	
 	fread(&h, sizeof(h), 1, f);
 	char sname[1000] = {0};
 	char tmp2[256]={0};
@@ -44,7 +44,7 @@ void mpakDump_v1(FILE* f, const std::string& name)
 	toDWORD(h.unk3);
 	//DUMP HEADER FIRST.
 	tmp=name+"/header.bin";
-    FILE* fp=fopen(tmp.c_str(),"w+b");
+	FILE* fp=fopen(tmp.c_str(),"w+b");
 	if(fp){
 
 		fwrite (&h, sizeof(h), 1, fp);
@@ -63,7 +63,7 @@ void mpakDump_v1(FILE* f, const std::string& name)
 	
 	//output name entries
 	cout << string(70, '-') << endl
-		<< neh.entryCount << " name entries: " << endl;
+	<< neh.entryCount << " name entries: " << endl;
 	for(i = 0; i < neh.entryCount; ++i)
 	{
 		NameEntry ne;
@@ -87,48 +87,48 @@ void mpakDump_v1(FILE* f, const std::string& name)
 			
 		}
 		cout << string(ne.tag, 4) << " " << ne.id << " " 
-			<< string(name, ne.nameLength) << endl;
+		<< string(name, ne.nameLength) << endl;
 	}
 	
 	//read entry header
-	EntryHeader eh;
+	
 	fread(&eh, sizeof(eh), 1, f);
 	toDWORD(eh.entryCount);
 	
 	//output entries
 	cout << string(70, '-') << endl
-		<< eh.entryCount << " entries: " << endl;
+	<< eh.entryCount << " entries: " << endl;
 	int count = 0;
 	for(i = 0; i < eh.entryCount; ++i)
 	{
 		Entry e;
 		fread(&e, sizeof(e), 1, f);
-		toDWORD(e.unk);
+		toDWORD(e.isCompressed);
 		
 		toDWORD(e.id);
 		toDWORD(e.length);
 		toDWORD(e.offset);
 		
-		cout << e.unk << " " << string(e.tag, 4) << " id: " << e.id
-			<< " length: " << e.length
-			<< " offset: " << e.offset << " " << endl;
+		cout << e.isCompressed << " " << string(e.tag, 4) << " id: " << e.id
+		<< " length: " << e.length
+		<< " offset: " << e.offset << " " << endl;
 		
-		assert(e.unk == 0 || e.unk == 1);
-		count += e.unk;
+		assert(e.isCompressed == 0 || e.isCompressed == 1);
+		count += e.isCompressed;
 		
 		//dump file
 		std::ostringstream nameStream;
-		nameStream << name << "\\" << e.unk << "_" << hex << e.id << "."
-			<< string(e.tag, 4);
+		nameStream << name << "\\" << e.isCompressed << "_" << hex << e.id << "."
+		<< string(e.tag, 4);
 		dumpFile(nameStream.str(), f, e.offset, e.length);
 	}
 	
 	cout << dec;
 	cout << count << " ones, " << eh.entryCount - count << " zeroes." << endl;
 	cout << eh.entryCount << " entries, " << neh.entryCount << " name entries"
-		<< endl;
+	<< endl;
 }
-
+//FIX _v3 later
 void mpakDump_v3(FILE* f, const std::string& name)
 {
 	int i;
@@ -158,7 +158,7 @@ void mpakDump_v3(FILE* f, const std::string& name)
 
 	//output section entries
 	cout << string(70, '-') << endl
-		<< seh.entryCount << " section entries: " << endl;
+	<< seh.entryCount << " section entries: " << endl;
 	for(i = 0; i < seh.entryCount; ++i)
 	{
 		fread(&se[i], sizeof(SectionEntry_v3), 1, f);
@@ -178,7 +178,7 @@ void mpakDump_v3(FILE* f, const std::string& name)
 	
 	//output name entries
 	cout << string(70, '-') << endl
-		<< neh.entryCount << " name entries: " << endl;
+	<< neh.entryCount << " name entries: " << endl;
 	for(i = 0; i < neh.entryCount; ++i)
 	{
 		char name[1000] = {0}; fscanf(f, "%[^\0]", name);
@@ -189,7 +189,7 @@ void mpakDump_v3(FILE* f, const std::string& name)
 		toQWORD(ne.id);
 		
 		cout << string(ne.tag, 4) << " " << ((u32*)&ne.id)[1] << ((u32*)&ne.id)[0] << " " 
-			<< string(name) << endl;
+		<< string(name) << endl;
 	}
 	
 	fseek(f, 0x80 + se[0].dataLength, SEEK_SET);
@@ -203,35 +203,35 @@ void mpakDump_v3(FILE* f, const std::string& name)
 	
 	//output entries
 	cout << string(70, '-') << endl
-		<< eh.entryCount << " entries: " << endl;
+	<< eh.entryCount << " entries: " << endl;
 	int count = 0;
 	for(i = 0; i < eh.entryCount; ++i)
 	{
 		Entry_v3 e;
 		fread(&e, sizeof(e), 1, f);
-		toDWORD(e.unk);
+		toDWORD(e.isCompressed);
 		
 		toQWORD(e.id);
 		toDWORD(e.length);
 		toDWORD(e.offset);
 		
-		cout << e.unk << " " << string(e.tag, 4) << " id: " << ((u32*)&e.id)[1] << ((u32*)&e.id)[0]
-			<< " length: " << e.length
-			<< " start: " << dataStart
-			<< " offset: " << e.offset << " " << endl;
+		cout << e.isCompressed << " " << string(e.tag, 4) << " id: " << ((u32*)&e.id)[1] << ((u32*)&e.id)[0]
+		<< " length: " << e.length
+		<< " start: " << dataStart
+		<< " offset: " << e.offset << " " << endl;
 		
-		assert(e.unk == 0 || e.unk == 1);
-		count += e.unk;
+		assert(e.isCompressed == 0 || e.isCompressed == 1);
+		count += e.isCompressed;
 		
 		//dump file
 		std::ostringstream nameStream;
-		nameStream << name << "\\" << e.unk << "_" << hex << ((u32*)&e.id)[1] << ((u32*)&e.id)[0] << "."
-			<< string(e.tag, 4);
+		nameStream << name << "\\" << e.isCompressed << "_" << hex << ((u32*)&e.id)[1] << ((u32*)&e.id)[0] << "."
+		<< string(e.tag, 4);
 		dumpFile(nameStream.str(), f, dataStart + e.offset, e.length);
 	}
 	
 	cout << dec;
 	cout << count << " ones, " << eh.entryCount - count << " zeroes." << endl;
 	cout << eh.entryCount << " entries, " << neh.entryCount << " name entries"
-		<< endl;
+	<< endl;
 }

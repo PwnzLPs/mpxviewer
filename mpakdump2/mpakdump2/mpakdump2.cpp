@@ -12,10 +12,10 @@
 
 
 int isDir(const char *dname) {
-    DIR *pakdir;
-    struct dirent *ent;
-    pakdir = opendir (dname);
-    int val=0;
+	DIR *pakdir;
+	struct dirent *ent;
+	pakdir = opendir (dname);
+	int val=0;
 	if(pakdir!=NULL) val=1;
 	return val;
 
@@ -27,18 +27,18 @@ int isDir(const char *dname) {
 
 #pragma pack(pop)
 void MakeMP12Head(char* dir){
-MPakHeader h;
-string f=dir;
+	MPakHeader h;
+	string f=dir;
 
 	//DUMP HEADER FIRST.
-  
+
 	h.unk1 = 3;
 	h.unk2 = 5;
 	h.unk3 = 0;
-    toWORD(h.unk1);
+	toWORD(h.unk1);
 	toWORD(h.unk2);
- 	toDWORD(h.unk3);
-    f+="header.bin";
+	toDWORD(h.unk3);
+	f+="header.bin";
 	FILE* fp=fopen(f.c_str(),"w+b");
 	if(fp){
 
@@ -47,16 +47,16 @@ string f=dir;
 	}
 }
 void MakeMP3Head(char* dir){
-MPakHeader h;
-string f=dir;
-    h.unk3=0;
+	MPakHeader h;
+	string f=dir;
+	h.unk3=0;
 	//DUMP HEADER FIRST.
-    h.unk1 = 0;
+	h.unk1 = 0;
 	h.unk2 = 2;
-    toWORD(h.unk1);
+	toWORD(h.unk1);
 	toWORD(h.unk2);
- 	toDWORD(h.unk3);
-    f+="header.bin";
+	toDWORD(h.unk3);
+	f+="header.bin";
 	FILE* fp=fopen(f.c_str(),"w+b");
 	if(fp){
 
@@ -69,19 +69,21 @@ void mpakPak(char* dir)
 {
 	MPakHeader h;
 	std::string name=dir;
-	name+="header.bin";
+	name+="/header.bin";
 	int t;
 	FILE*fp=fopen(name.c_str(),"r+b");
 	if(fp){
 		fseek(fp, 0, SEEK_SET);
 		
 		fread(&h, sizeof(h), 1, fp);
-		toWORD(h.unk1);
-		toWORD(h.unk2);
-		toDWORD(h.unk3);
 		
+		fclose(fp);
 		if (h.unk1 == 3 && h.unk2 == 5)
+
 		{
+			toWORD(h.unk1);
+			toWORD(h.unk2);
+			toDWORD(h.unk3);
 			mpakPack_v1(dir);
 		}
 		else if (h.unk1 == 0 && h.unk2 == 2)
@@ -89,15 +91,15 @@ void mpakPak(char* dir)
 			//mpakDump_v3(fp, name);
 		}
 	}else{
-          printf("No header file was detected.\nPlease choose a pak type below.\nType 1 for MP1 and 2 paks\nType 2 for MP3 Paks\n");
-		  scanf("%d",t);
-		  if(t&2){
-				MakeMP3Head(dir);
-			  //mpakPack_v2(dir)
-		  }else{
-			  mpakPack_v1(dir);
-			 //  MakeMP12Head(dir);
-		  }
+		printf("No header file was detected.\nPlease choose a pak type below.\nType 1 for MP1 and 2 paks\nType 2 for MP3 Paks\n");
+		scanf("%d",t);
+		if(t&2){
+			MakeMP3Head(dir);
+			//mpakPack_v2(dir)
+		}else{
+			mpakPack_v1(dir);
+			//  MakeMP12Head(dir);
+		}
 
 	}
 }
@@ -128,16 +130,16 @@ void mpakDump(FILE* f, const std::string& name)
 int findextension(char* str){
 	string file=str;
 	return file.find(".");
-    
+	
 
 }
 int main(int argc, char* argv[])
 {
 	FILE* f;
 	if(!isDir(argv[1])){
-	if(argc < 2 || (f = fopen(argv[1], "rb")) == NULL)
+		if(argc < 2 || (f = fopen(argv[1], "rb")) == NULL)
 		return EXIT_FAILURE;
-	
+		
 		std::string dirName = argv[1] + string("_dir");
 		mkdir(dirName.c_str());
 		
